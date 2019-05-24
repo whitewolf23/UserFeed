@@ -21,9 +21,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         window?.makeKeyAndVisible()
 
         let viewController = ViewController()
-//        let navigationController = UINavigationController(rootViewController: viewController)
+        let navigationController = UINavigationController(rootViewController: viewController)
         window?.backgroundColor = .blue
-        window?.rootViewController = viewController
+        window?.rootViewController = navigationController
         
 //        if let window = window {
 //            window.backgroundColor = .blue

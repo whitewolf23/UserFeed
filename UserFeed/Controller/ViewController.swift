@@ -86,7 +86,7 @@ extension ViewController : UITableViewDelegate, UITableViewDataSource {
             filter = filterArray[indexPath.row]
         } else {
 //            filter = testArray[indexPath.row]
-            filter = viewModel?.items[indexPath.row]  as! UserItemPresentable
+            filter = viewModel?.items[indexPath.row]
         }
 //        let data = viewModel?.items[indexPath.row]
 //        print(data)
@@ -118,11 +118,12 @@ extension ViewController : UISearchBarDelegate {
             tableView.reloadData()
         }else{
             isSearching = true
-            print(testArray)
-            print(viewModel?.items)
+            
+//            print(viewModel?.items[0].id)
 
-//            filterArray = testArray.filter({$0.range(of: searchBar.text!, options: .caseInsensitive) != nil })
-//            filterArray = viewModel?.items.filter({$0.range(of: searchBar.text!, options: .caseInsensitive) != nil })
+//            filterArray = (viewModel?.items.filter({$0.id?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
+             filterArray = (viewModel?.items.filter({$0.textValue?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
+    
             tableView.reloadData()
         }
     }

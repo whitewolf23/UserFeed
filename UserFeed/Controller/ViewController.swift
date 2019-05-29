@@ -7,17 +7,44 @@
 //
 
 import UIKit
+import RxCocoa
+import RxSwift
+
+//protocol UserView: class {
+//    func insertUserItem() -> ()
+//    func removeUserItem(at index: Int) -> ()
+//    func updateUserItem(at index: Int) -> ()
+//    func reloadItems() -> ()
+//}
 
 class ViewController: UIViewController {
     
     let cellId = "cell"
-    var testArray = ["Jason", "Tommi", "Ash", "Jay", "Ellein", "Semi", "Edward"]
-//    var userModal = [UserModel]()
-//    var userModal = [UserViewModel]()
     var viewModel : UserViewModel?
-//    var filterArray = [String]()
+    let disposeBag = DisposeBag()
     var filterArray = [UserItemPresentable]()
     var isSearching = false
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        setupUI()
+        viewModel = UserViewModel()
+        
+        viewModel?.filteredItems.asObservable().bind(to :tableView.rx.items(cellIdentifier : cellId, cellType: UserItemTableViewCell.self )) { index, item, cell in
+                cell.configure(withViewModel: item)
+            }.disposed(by: disposeBag)
+        
+        let searchBar = searchBarController.searchBar
+        
+        searchBar.rx.text
+            .orEmpty
+            .distinctUntilChanged()
+            .debug()
+            .bind(to:(viewModel?.searchValue)!)
+            .disposed(by: disposeBag)
+        
+        view.backgroundColor = .white
+    }
     
     lazy var searchBarController : UISearchController = {
         let searchBarController = UISearchController(searchResultsController: nil)
@@ -32,8 +59,10 @@ class ViewController: UIViewController {
     lazy var tableView : UITableView = {
         let table = UITableView()
         table.translatesAutoresizingMaskIntoConstraints = false
-        table.delegate = self
-        table.dataSource = self
+//        table.estimatedRowHeight = 118
+
+//        table.delegate = self
+//        table.dataSource = self
 //        table.register(UITableViewCell.self, forCellReuseIdentifier: cellId)
         table.register(UserItemTableViewCell.self, forCellReuseIdentifier: cellId)
         return table
@@ -59,56 +88,43 @@ class ViewController: UIViewController {
     
     
     
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        setupUI()
-        viewModel = UserViewModel()
-        view.backgroundColor = .white
-    }
+   
     
 }
 
 
-extension ViewController : UITableViewDelegate, UITableViewDataSource {
-    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        if isSearching {
-            return filterArray.count
-        } else {
-//            return testArray.count
-            return (viewModel?.items.count)!
-        }
-    }
+//extension ViewController : UITableViewDelegate, UITableViewDataSource {
+//    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+//        if isSearching {
+//            return filterArray.count
+//        } else {
+////            return testArray.count
+//            guard let items = viewModel?.items else {
+//                return 0
+//            }
+//            return (viewModel?.items.value.count)!
+//        }
+//    }
+//
+//    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+//        var filter : UserItemPresentable?
+//        if isSearching {
+//            filter = filterArray[indexPath.row]
+//        } else {
+//            filter = viewModel?.items.value[indexPath.row]
+//        }
+//        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! UserItemTableViewCell
+//        cell.configure(withViewModel: filter!)
+//        return cell
+//    }
     
-    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-        var filter : UserItemPresentable?
-//        var filter : String?
-        if isSearching {
-            filter = filterArray[indexPath.row]
-        } else {
-//            filter = testArray[indexPath.row]
-            filter = viewModel?.items[indexPath.row]
-        }
-//        let data = viewModel?.items[indexPath.row]
-//        print(data)
-        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! UserItemTableViewCell
-       
-//        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
-        
-        
-      
-//        cell.textLabel?.text = filter
-        cell.configure(withViewModel: filter!)
-        
-        return cell
-    }
-    
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return 118
-    }
-    
-    
-    
-}
+//    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+//        return 118
+//    }
+//
+//
+//
+//}
 
 extension ViewController : UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
@@ -119,13 +135,29 @@ extension ViewController : UISearchBarDelegate {
         }else{
             isSearching = true
             
-//            print(viewModel?.items[0].id)
-
-//            filterArray = (viewModel?.items.filter({$0.id?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
-             filterArray = (viewModel?.items.filter({$0.textValue?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
+             filterArray = (viewModel?.items.value.filter({$0.textValue?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
     
             tableView.reloadData()
         }
     }
     
 }
+
+//extension ViewController : UserView {
+//    func insertUserItem() {
+//
+//    }
+//
+//    func removeUserItem(at index: Int) {
+//
+//    }
+//
+//    func updateUserItem(at index: Int) {
+//
+//    }
+//
+//    func reloadItems() {
+//
+//    }
+//
+//}

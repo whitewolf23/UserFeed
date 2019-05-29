@@ -62,8 +62,8 @@ class UserItemTableViewCell: UITableViewCell {
     
     
     func configure (withViewModel viewModel: UserItemPresentable) -> (Void){
-        nameLabel.text = viewModel.id!
-        scoreLabel.text = viewModel.textValue!
+        nameLabel.text = viewModel.login!
+        scoreLabel.text = viewModel.score!
     }
     
   

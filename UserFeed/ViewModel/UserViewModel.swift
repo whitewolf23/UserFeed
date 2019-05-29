@@ -35,44 +35,172 @@
 //    ]
 //}
 
-protocol UserItemPresentable {
-    var id: String? { get }
-    var textValue: String? { get }
+import RxSwift
+import RealmSwift
+
+protocol UserMenuItemViewPresentable {
+    var title: String? { get set }
+    var backColor: String? { get }
 }
 
-struct UserItemViewModel : UserItemPresentable {
-    var id : String? = "0"
-    var textValue : String?
+protocol UserMenuItemViewDelegate {
+    func onUserItemSelected() -> ()
 }
 
-
-protocol UserItemViewDelegate {
-    func onUserItemAdded() -> ()
-}
-
-
-struct UserViewModel {
+class UserMenuItemViewModel : UserMenuItemViewPresentable, UserMenuItemViewDelegate {
+    var title: String?
+    var backColor : String?
+    weak var parent : UserItemViewDelegete?
     
-    init() {
-        let item1 = UserItemViewModel(id: "1", textValue: "로이")
-        let item2 = UserItemViewModel(id: "2", textValue: "제이슨")
-        let item3 = UserItemViewModel(id: "3", textValue: "세미")
-        let item4 = UserItemViewModel(id: "4", textValue: "매튜")
-        let item5 = UserItemViewModel(id: "5", textValue: "댄")
-        let item6 = UserItemViewModel(id: "6", textValue: "애쉬")
-        let item7 = UserItemViewModel(id: "7", textValue: "제이")
-
-//        items.append([item1, item2, item3, item4, item5, item6, item7] as! UserItemPresentable)
-        items.append(contentsOf: [item1, item2, item3, item4, item5, item6, item7])
-//        items.append([item1, item2, item3, item4, item5, item6, item7] )
+    init(parentViewModel : UserItemViewDelegete) {
+        self.parent = parentViewModel
     }
-    var newUserItem : String?
-    var items : [UserItemPresentable] = []
-}
-
-
-extension UserViewModel: UserItemViewDelegate {
-    func onUserItemAdded() {
+    
+    func onUserItemSelected() {
         
     }
 }
+
+class RemoveMenuItemViewModel : UserMenuItemViewModel {
+    override func onUserItemSelected() {
+        print("지우기")
+        parent?.onRemoveSelected()
+    }
+}
+
+class DoneMenuItemViewModel : UserMenuItemViewModel {
+    override func onUserItemSelected() {
+        print("끝~")
+        parent?.onDoneSelected()
+    }
+}
+
+protocol UserItemViewDelegete : class {
+    func onItemSelected() -> (Void)
+    func onRemoveSelected() -> (Void)
+    func onDoneSelected() -> (Void)
+}
+
+protocol UserItemPresentable {
+    var id: String? { get }
+    var textValue : String? { get }
+    var login : String? { get }
+    var score : String? { get }
+    var isDone : Bool? { get set }
+    var menuItems : [UserMenuItemViewPresentable]? { get }
+}
+
+
+class UserItemViewModel : UserItemPresentable {
+    var id : String? = "0"
+    var textValue: String?
+    var login: String?
+    var score: String?
+
+    var isDone: Bool? = false
+    var menuItems: [UserMenuItemViewPresentable]? = []
+    weak var parent : UserViewDelegate?
+    
+    init(id: String, textValue: String, login:String, score: String, parentViewModel: UserViewDelegate) {
+        self.id = id
+        self.textValue = textValue
+        self.parent = parentViewModel
+        self.login = login
+        self.score = score
+        
+        let removeMenuItem = RemoveMenuItemViewModel(parentViewModel: self)
+        removeMenuItem.title = "Remove"
+        removeMenuItem.backColor = "ff0000"
+        
+        let doneMenuItem = DoneMenuItemViewModel(parentViewModel: self)
+        doneMenuItem.title = isDone! ? "undone" : "done"
+        doneMenuItem.backColor = "000000"
+        
+        menuItems?.append(contentsOf: [removeMenuItem, doneMenuItem])
+    }
+}
+
+extension UserItemViewModel : UserItemViewDelegete {
+    func onItemSelected() {
+        print("선택!!")
+    }
+    
+    func onRemoveSelected() {
+        parent?.onTodoDelete(todoId: id!)
+    }
+    
+    func onDoneSelected() {
+        parent?.onTodoDone(todoId: id!)
+    }
+}
+
+protocol UserViewDelegate: class {
+    func onAddTodoItem() -> ()
+    func onTodoDelete(todoId: String) -> ()
+    func onTodoDone(todoId: String) -> ()
+}
+
+protocol UserViewPresentable {
+    var newUserItem : String? { get }
+    var searchValue : Variable<String> { get }
+}
+
+class UserViewModel : UserViewPresentable {
+    var searchValue: Variable<String> = Variable("")
+
+    var newUserItem: String?
+    var items : Variable<[UserItemPresentable]> = Variable([])
+    var filteredItems : Variable<[UserItemPresentable]> = Variable([])
+
+    let disposeBag = DisposeBag()
+    
+    lazy var searchValueObservale : Observable<String> = self.searchValue.asObservable()
+    lazy var itemsObservable : Observable<[UserItemPresentable]> = self.items.asObservable()
+    lazy var filteredItemsOvservable : Observable<[UserItemPresentable]> = self.filteredItems.asObservable()
+   
+    init() {
+        fetchUsers()
+        
+        searchValueObservale.subscribe(onNext: { (value) in
+            print("검색어\(value)")
+            
+            self.itemsObservable.map({
+                $0.filter({
+                    if value.isEmpty { return true }
+                    return ($0.textValue?.lowercased().contains(value.lowercased()))!
+                })
+            }).bind(to: self.filteredItems)
+                .disposed(by: self.disposeBag)
+        }).disposed(by: disposeBag)
+    }
+    
+    func fetchUsers() -> (Void) {
+        let usersObservable = ApiService.sharedInstance.fetchAllUsers()
+        
+        usersObservable.subscribe(onNext : { (jsonResponse) in
+            print("jsonResponse", jsonResponse)
+            
+            if let userArray = jsonResponse["items"].array {
+                userArray.forEach({ (UserItemDict) in
+                    if let itemDict = UserItemDict.dictionary {
+                        if let login = itemDict["login"]?.string,
+                            let score = itemDict["score"]?.string {
+                            print("login : \(login)")
+                            print("score : \(score)")
+                            
+                        }
+                    }
+                    
+                })
+            }
+        }, onError: { (error) in
+            print("error")
+        }, onCompleted: {
+            print("onCompleted")
+        }, onDisposed: {
+            print("onDisposed")
+            
+        }).disposed(by: disposeBag)
+    }
+}
+

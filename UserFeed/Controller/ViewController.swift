@@ -18,10 +18,6 @@ class ViewController: UIViewController {
     var isSearching = false
     var page = 1
 
-    var searchUrl = String()
-    var listUsers = [UserVO]()
-
-    
     lazy var searchBarController : UISearchController = {
         let searchBarController = UISearchController(searchResultsController: nil)
         searchBarController.dimsBackgroundDuringPresentation = false
@@ -83,40 +79,9 @@ extension ViewController : NetworkCallback {
     func networkFailed() {
         
     }
-    
-    
 }
+
 extension ViewController : UITableViewDelegate, UITableViewDataSource {
-    
-//    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-//        return listUsers.count
-//    }
-//
-//    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
-//
-//        let cell = tableView.dequeueReusableCell(withIdentifier: cellId) as! UserItemTableViewCell
-//        let row = indexPath.row
-//
-//        cell.nameLabel.text = listUsers[row].login
-    
-//        let imageUser = cell.imageView?.image
-//        imageUser.sd_setImage(with: URL(string: listUsers[row].image), placeholderImage: UIImage(named: "noImage.png"))
-//        imageUser.contentMode = UIView.ContentMode.scaleAspectFit
-        
-//        return cell
-//    }
-//
-//    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
-//        let lastItem = listUsers.count - 1
-//        if (indexPath.row == lastItem && lastItem > 0){
-//            print("lastitem : \(lastItem)")
-//            self.page = self.page + 1
-//            self.searchBarAction()
-//        }
-//    }
-//
-    
-    
     
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if isSearching {
@@ -145,9 +110,6 @@ extension ViewController : UITableViewDelegate, UITableViewDataSource {
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 118
     }
-
-    
-    
 }
 
 extension ViewController : UISearchBarDelegate {
@@ -164,66 +126,4 @@ extension ViewController : UISearchBarDelegate {
             tableView.reloadData()
         }
     }
-    
-    
-    
-    
-    
-    
-    func searchBarAction(){
-        dissmisKeyboard()
-        
-        let keywords = searchBarController.searchBar.text
-        
-        
-        // validasi
-        let error: String = validasiPassword(search: keywords!)
-        
-        if(self.page == 1 || error.count > 0){
-            self.listUsers.removeAll()
-            self.tableView.reloadData()
-        }
-        
-        if(error.count > 0){
-            //            alert(message: error, title: "Warning")
-        }else{
-            let finalKeywords = keywords?.replacingOccurrences(of: " ", with: "+")
-            print("page : \(self.page)")
-            searchUrl = "https://api.github.com/search/users?q=\(String(describing: finalKeywords!))&page=\(self.page)&per_page=100"
-            let usermodel = UserModel(self)
-
-            usermodel.callAPI(url: searchUrl)
-        }
-    }
-} 
-
-
-extension ViewController {
-//    func stopIndicator() {
-//        backgroundView.isHidden = false
-//        self.indicatorView.isHidden = true
-//        self.indicatorView.stopAnimating()
-//    }
-//
-//    func startIndicator() {
-//        backgroundView.isHidden = true
-//        self.indicatorView.isHidden = false
-//        self.indicatorView.startAnimating()
-//    }
-
-    
-    func validasiPassword(search: String) -> String {
-        var error: String = ""
-        
-        if (search.count) == 0 {
-            error = "Search is Required."
-        }
-        
-        return error
-    }
-    
-    @objc func dissmisKeyboard() {
-        _ = searchBarController.searchBar.resignFirstResponder()
-    }
 }
-

@@ -7,17 +7,20 @@
 //
 
 import UIKit
+import Alamofire
+import Kingfisher
 
 class ViewController: UIViewController {
     
     let cellId = "cell"
-    var testArray = ["Jason", "Tommi", "Ash", "Jay", "Ellein", "Semi", "Edward"]
-//    var userModal = [UserModel]()
-//    var userModal = [UserViewModel]()
     var viewModel : UserViewModel?
-//    var filterArray = [String]()
     var filterArray = [UserItemPresentable]()
     var isSearching = false
+    var page = 1
+
+    var searchUrl = String()
+    var listUsers = [UserVO]()
+
     
     lazy var searchBarController : UISearchController = {
         let searchBarController = UISearchController(searchResultsController: nil)
@@ -34,7 +37,6 @@ class ViewController: UIViewController {
         table.translatesAutoresizingMaskIntoConstraints = false
         table.delegate = self
         table.dataSource = self
-//        table.register(UITableViewCell.self, forCellReuseIdentifier: cellId)
         table.register(UserItemTableViewCell.self, forCellReuseIdentifier: cellId)
         return table
     }()
@@ -57,6 +59,11 @@ class ViewController: UIViewController {
         navigationItem.hidesSearchBarWhenScrolling = false
     }
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(true)
+        let usermodel = UserModel(self)
+        usermodel.callAPI(url: "https://api.github.com/search/users?q=v")
+    }
     
     
     override func viewDidLoad() {
@@ -68,44 +75,77 @@ class ViewController: UIViewController {
     
 }
 
-
+extension ViewController : NetworkCallback {
+    func networkResult(resultData: Any, code: String) {
+        
+    }
+    
+    func networkFailed() {
+        
+    }
+    
+    
+}
 extension ViewController : UITableViewDelegate, UITableViewDataSource {
+    
+//    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+//        return listUsers.count
+//    }
+//
+//    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+//
+//        let cell = tableView.dequeueReusableCell(withIdentifier: cellId) as! UserItemTableViewCell
+//        let row = indexPath.row
+//
+//        cell.nameLabel.text = listUsers[row].login
+    
+//        let imageUser = cell.imageView?.image
+//        imageUser.sd_setImage(with: URL(string: listUsers[row].image), placeholderImage: UIImage(named: "noImage.png"))
+//        imageUser.contentMode = UIView.ContentMode.scaleAspectFit
+        
+//        return cell
+//    }
+//
+//    func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+//        let lastItem = listUsers.count - 1
+//        if (indexPath.row == lastItem && lastItem > 0){
+//            print("lastitem : \(lastItem)")
+//            self.page = self.page + 1
+//            self.searchBarAction()
+//        }
+//    }
+//
+    
+    
+    
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         if isSearching {
             return filterArray.count
         } else {
-//            return testArray.count
             return (viewModel?.items.count)!
         }
     }
-    
+
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         var filter : UserItemPresentable?
-//        var filter : String?
         if isSearching {
             filter = filterArray[indexPath.row]
         } else {
-//            filter = testArray[indexPath.row]
             filter = viewModel?.items[indexPath.row]
         }
-//        let data = viewModel?.items[indexPath.row]
-//        print(data)
+
         let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath) as! UserItemTableViewCell
-       
-//        let cell = tableView.dequeueReusableCell(withIdentifier: cellId, for: indexPath)
-        
-        
-      
-//        cell.textLabel?.text = filter
+
+
         cell.configure(withViewModel: filter!)
-        
+
         return cell
     }
-    
+
     func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
         return 118
     }
-    
+
     
     
 }
@@ -118,14 +158,72 @@ extension ViewController : UISearchBarDelegate {
             tableView.reloadData()
         }else{
             isSearching = true
-            
-//            print(viewModel?.items[0].id)
 
-//            filterArray = (viewModel?.items.filter({$0.id?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
              filterArray = (viewModel?.items.filter({$0.textValue?.range(of: searchBar.text!, options: .caseInsensitive) != nil }))!
-    
+
             tableView.reloadData()
         }
     }
     
+    
+    
+    
+    
+    
+    func searchBarAction(){
+        dissmisKeyboard()
+        
+        let keywords = searchBarController.searchBar.text
+        
+        
+        // validasi
+        let error: String = validasiPassword(search: keywords!)
+        
+        if(self.page == 1 || error.count > 0){
+            self.listUsers.removeAll()
+            self.tableView.reloadData()
+        }
+        
+        if(error.count > 0){
+            //            alert(message: error, title: "Warning")
+        }else{
+            let finalKeywords = keywords?.replacingOccurrences(of: " ", with: "+")
+            print("page : \(self.page)")
+            searchUrl = "https://api.github.com/search/users?q=\(String(describing: finalKeywords!))&page=\(self.page)&per_page=100"
+            let usermodel = UserModel(self)
+
+            usermodel.callAPI(url: searchUrl)
+        }
+    }
+} 
+
+
+extension ViewController {
+//    func stopIndicator() {
+//        backgroundView.isHidden = false
+//        self.indicatorView.isHidden = true
+//        self.indicatorView.stopAnimating()
+//    }
+//
+//    func startIndicator() {
+//        backgroundView.isHidden = true
+//        self.indicatorView.isHidden = false
+//        self.indicatorView.startAnimating()
+//    }
+
+    
+    func validasiPassword(search: String) -> String {
+        var error: String = ""
+        
+        if (search.count) == 0 {
+            error = "Search is Required."
+        }
+        
+        return error
+    }
+    
+    @objc func dissmisKeyboard() {
+        _ = searchBarController.searchBar.resignFirstResponder()
+    }
 }
+
